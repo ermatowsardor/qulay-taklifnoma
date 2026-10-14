@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qulay-Taklifnoma — Raqamli Taklifnomalar Platformasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #090b10;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .font-serif-lux { font-family: 'Cormorant Garamond', serif; }
+    .font-script { font-family: 'Great Vibes', cursive; }
+
+    /* Taklifnoma karkas shakllari */
+    .card-shape-arch { border-radius: 180px 180px 28px 28px; }
+    .card-shape-dome { border-radius: 140px 140px 40px 40px; }
+    .card-shape-royal { clip-path: polygon(6% 0%, 94% 0%, 100% 6%, 100% 94%, 94% 100%, 6% 100%, 0% 94%, 0% 6%); }
+    .card-shape-classic { border-radius: 24px; }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+    @keyframes petalFall {
+      0% { transform: translateY(-10%) rotate(0deg); opacity: 0.9; }
+      100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+    }
+    .animate-float { animation: floatSlow 5s ease-in-out infinite; }
+    .petal {
+      position: fixed;
+      top: -10%;
+      pointer-events: none;
+      z-index: 30;
+      animation: petalFall linear infinite;
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #ca8a04; border-radius: 9999px; }
+  </style>
+</head>
+<body class="min-h-screen selection:bg-amber-500 selection:text-black">
+
+  <!-- Gul yaproqlari va zarrachalar konteyneri -->
+  <div id="particlesContainer" class="fixed inset-0 pointer-events-none z-20 overflow-hidden"></div>
+
+  <!-- ================= YUQORI NAVIGATSIYA ================= -->
+  <header id="mainHeader" class="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/85 border-b border-amber-500/20">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-amber-500/20">
+          Q
+        </div>
+        <div>
+          <span class="font-serif-lux text-2xl font-bold tracking-wide bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500 bg-clip-text text-transparent">
+            Qulay-Taklifnoma
+          </span>
+          <span id="userBadge" class="block text-xs text-slate-400">Tizimga kiring</span>
+        </div>
+      </div>
+
+      <div class="flex items-center flex-wrap gap-2">
+        <button onclick="switchTab('builder')" id="tabBuilderBtn" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-amber-500 text-slate-950 transition">
+          🎨 Taklifnoma yaratish
+        </button>
+        <button onclick="switchTab('pricing')" id="tabPricingBtn" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition">
+          💎 Tariflar va To'lov
+        </button>
+        <button onclick="switchTab('responses')" id="tabResponsesBtn" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition flex items-center gap-1.5">
+          <span>✉️ Javoblar</span>
+          <span id="rsvpCountBadge" class="px-1.5 py-0.5 text-xs rounded-full bg-amber-500 text-slate-950 font-bold">0</span>
+        </button>
+        <button onclick="switchTab('admin')" id="tabAdminBtn" class="hidden px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 transition">
+          🛡️ Admin Panel
+        </button>
+        <button onclick="logoutUser()" class="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-900 hover:bg-red-950/60 text-slate-400 hover:text-red-300 border border-slate-800 transition">
+          Chiqish
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= DDOS HIMOYALI LOGIN / REGISTRATSIYA MODALI ================= -->
+  <div id="authModal" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-4 hidden">
+    <div class="w-full max-w-md rounded-3xl bg-slate-900 border border-amber-500/30 p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div class="absolute -top-20 -right-20 w-44 h-44 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 font-bold flex items-center justify-center">Q</div>
+          <div>
+            <h2 class="text-xl font-bold text-amber-300">Qulay-Taklifnoma</h2>
+            <p class="text-[11px] text-emerald-400 flex items-center gap-1">🛡️ DDoS va Botlardan himoyalangan tizim</p>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mb-5">
+        Taklifnoma yaratish uchun tizimga kiring yoki ro'yxatdan o'ting. (Mehmonlar taklifnomani ko'rishi uchun ro'yxatdan o'tishi shart emas).
+      </p>
+
+      <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl mb-5 border border-slate-800">
+        <button id="modeLoginBtn" onclick="setAuthMode('login')" class="py-2 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition">Kirish (Login)</button>
+        <button id="modeRegisterBtn" onclick="setAuthMode('register')" class="py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition">Ro'yxatdan o'tish</button>
+      </div>
+
+      <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div id="registerNameField" class="hidden">
+          <label class="block text-xs text-slate-300 mb-1">Ism-familiyangiz</label>
+          <input id="authFullName" type="text" placeholder="Masalan: Sardorbek Ermatov" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Login yoki Telefon raqam</label>
+          <input id="authLoginInput" type="text" required placeholder="+998901234567 yoki login" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Parol</label>
+          <input id="authPasswordInput" type="password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+        </div>
+
+        <div class="p-3 rounded-xl bg-slate-950/90 border border-emerald-500/30 flex items-center justify-between gap-3">
+          <div>
+            <span class="text-[11px] uppercase tracking-wider text-emerald-400 font-semibold block">🛡️ Anti-DDoS Tekshiruv</span>
+            <span id="captchaQuestion" class="text-sm font-bold text-white">4 + 5 = ?</span>
+          </div>
+          <input id="captchaInput" type="number" required placeholder="Javob" class="w-24 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-center text-sm font-bold focus:border-emerald-400 outline-none" />
+        </div>
+
+        <p id="authErrorMsg" class="text-xs text-red-400 hidden"></p>
+
+        <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-600 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 hover:opacity-95 transition">
+          Davom etish →
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= TO'LOV MODALI (@S_A_J_E_E_J_A_S) ================= -->
+  <div id="paymentModal" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl hidden items-center justify-center p-4">
+    <div class="w-full max-w-md rounded-3xl bg-slate-900 border-2 border-amber-500/50 p-6 sm:p-7 shadow-2xl space-y-5 relative">
+      <button onclick="closePaymentModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold">✕</button>
+
+      <div class="text-center space-y-1">
+        <span class="px-3 py-1 rounded-full text-[11px] font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/30">TARIFNI FAOLLASHTIRISH</span>
+        <h3 id="payModalTitle" class="text-2xl font-serif-lux font-bold text-white pt-1">25 000 so'm (+10 VIP dizayn)</h3>
+        <p class="text-xs text-slate-400">Quyidagi tugma orqali adminga yozing va to'lovni amalga oshiring</p>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-950 border border-amber-500/30 space-y-2 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Sizning Profil ID raqamingiz:</span>
+          <span id="payModalUserId" class="font-mono font-extrabold text-sm text-amber-400">QT-00000</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400">Admin Telegram manzili:</span>
+          <span class="font-bold text-sky-400">@S_A_J_E_E_J_A_S</span>
+        </div>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-[11px] text-slate-400">Adminga yuboriladigan tayyor xabar:</label>
+        <textarea id="payModalPreparedText" readonly rows="3" class="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 outline-none"></textarea>
+      </div>
+
+      <div class="space-y-2.5">
+        <a id="payModalTelegramBtn" href="https://t.me/S_A_J_E_E_J_A_S" target="_blank" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-sky-400 to-blue-600 hover:opacity-95 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-500/25 transition">
+          ✈️ @S_A_J_E_E_J_A_S ga yozish va To'lash
+        </a>
+        <button onclick="copyModalPreparedText()" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold text-xs border border-amber-500/20 transition">
+          📋 Xabarni va ID raqamni nusxalab olish
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= ASOSIY ISHCHI QISM ================= -->
+  <main id="creatorWorkspace" class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- FOYdALANUVCHI PROFIL VA TARIF PANELI -->
+    <div id="userStatusBanner" class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 border border-amber-500/30 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center">
+          <span class="text-[10px] uppercase tracking-wider text-amber-300 block">Sizning ID raqamingiz</span>
+          <span id="currentUserIdDisplay" class="font-mono font-bold text-base text-white">QT-00000</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-sm font-bold text-white" id="currentUserNameDisplay">Foydalanuvchi</span>
+            <span id="currentUserPlanBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-700 text-slate-200">Bepul tarif (3 ta dizayn)</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Qo'shimcha dizaynlarni ochish uchun <strong class="text-amber-300">@S_A_J_E_E_J_A_S</strong> ga ID raqamingizni yuborib tarifni faollashtiring.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="copyUserId()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-amber-300 border border-amber-500/20 transition">
+          📋 ID raqamni nusxalash
+        </button>
+        <button onclick="switchTab('pricing')" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition">
+          💎 Tarifni oshirish (+5 / +10 dizayn)
+        </button>
+      </div>
+    </div>
+
+    <!-- 1-BO'LIM: TAKLIFNOMA YARATISH VA 18 XIL DIZAYN -->
+    <section id="sectionBuilder" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+      <!-- Chap ustun: Sozlamalar -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- 1. Marosim turi -->
+        <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-base font-bold text-amber-300">1. Marosim mavzusini tanlang</h2>
+            <span class="text-xs text-slate-400">Har bir mavzuda 18 tadan dizayn</span>
+          </div>
+          <div id="categoryGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5"></div>
+        </div>
+
+        <!-- 2. 18 Xil Dizayn Tanlash -->
+        <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 class="text-base font-bold text-amber-300">2. Taklifnoma dizaynini tanlang (18 xil)</h2>
+              <p class="text-xs text-slate-400">3 ta Bepul • +5 ta Standart (15 000 so'm) • +10 ta VIP (25 000 so'm)</p>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="filterDesigns('all')" id="filter_all" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950">Barchasi (18)</button>
+              <button onclick="filterDesigns('free')" id="filter_free" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-emerald-300">Bepul (3)</button>
+              <button onclick="filterDesigns('male')" id="filter_male" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-sky-300">Erkak/O'g'il (8)</button>
+              <button onclick="filterDesigns('female')" id="filter_female" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-pink-300">Ayol/Qiz (6)</button>
+              <button onclick="filterDesigns('universal')" id="filter_universal" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-amber-200">Universal (4)</button>
+            </div>
+          </div>
+
+          <div id="designsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[430px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- 3. Ochilish animatsiyasi va Musiqa (O'z MP3 faylini yuklash imkoniyati bilan) -->
+        <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-amber-300 mb-1.5">3. Taklifnoma ochilish usuli</label>
+              <select id="openStyleSelect" onchange="updatePreview()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm outline-none focus:border-amber-400">
+                <option value="flower">🌸 360° Gul barglari kabi ochilish</option>
+                <option value="gate">🚪 Qirollik qo'sh tabaqali darvozasi</option>
+                <option value="envelope">✉️ Muhrlangan oltin konvert</option>
+                <option value="scroll">📜 Sharqona oltin o'rama pergament</option>
+                <option value="gift">🎁 3D Bayram sovg'a qutisi</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-amber-300 mb-1.5">4. Orqa fon musiqasi (Tayyorlar)</label>
+              <div class="flex gap-2">
+                <select id="musicSelect" onchange="changeMusicTrack()" class="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm outline-none focus:border-amber-400">
+                  <option value="waltz">🎻 Gullar Valsi (Klassik Orkestr)</option>
+                  <option value="wedding">🎹 Visol Oqshomi (Romantik Fortepiano)</option>
+                  <option value="festive">🎺 Sharqona Tantana (Bayramona)</option>
+                  <option value="birthday">🎂 Tavallud Ayyomi Simfoniyasi</option>
+                  <option value="royal">👑 Qirollik Saroyi (Arfa va Skripka)</option>
+                </select>
+                <button type="button" onclick="toggleAudioPlayback()" id="audioPlayBtn" class="px-3.5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs shrink-0">
+                  ▶ Tinglash
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- O'z kompyuteringizdan MP3 musiqa yuklash -->
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <span class="text-xs font-semibold text-amber-300 block">🎵 Yoki o'z kompyuteringizdan MP3 musiqa yuklang</span>
+              <span id="uploadedMusicName" class="text-[11px] text-slate-400">Hozircha tayyor musiqalardan biri tanlangan</span>
+            </div>
+            <label class="cursor-pointer px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-xs font-bold transition">
+              📁 MP3 Fayl tanlash
+              <input type="file" accept="audio/mp3,audio/*" onchange="handleCustomAudioUpload(event)" class="hidden" />
+            </label>
+          </div>
+        </div>
+
+        <!-- 4. Taklifnoma ma'lumotlari -->
+        <div class="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4">
+          <h2 class="text-base font-bold text-amber-300">5. Taklifnoma matni va ma'lumotlari</h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Asosiy sababchilar / Sarlavha</label>
+              <input id="inputMainNames" type="text" oninput="updatePreview()" value="Sardorbek & Malika" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Mehmon ismi (Ixtiyoriy)</label>
+              <input id="inputGuestName" type="text" oninput="updatePreview()" placeholder="Masalan: Aziz qadrdonimiz" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs text-slate-400 mb-1">Taklifnoma matni</label>
+            <textarea id="inputMessage" rows="3" oninput="updatePreview()" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none">Sizni hayotimizning eng quvonchli va unutilmas kunida biz bilan birga bo'lishga, dasturxonimiz to'ridan joy olishga chin qalbimizdan taklif etamiz!</textarea>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Sana</label>
+              <input id="inputDate" type="date" oninput="updatePreview()" value="2026-11-15" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Soat</label>
+              <input id="inputTime" type="time" oninput="updatePreview()" value="18:00" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Xonadon / Mezbon</label>
+              <input id="inputHost" type="text" oninput="updatePreview()" value="Ermatovlar xonadoni" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Manzil / Tantanalar saroyi</label>
+              <input id="inputLocation" type="text" oninput="updatePreview()" value="Farg'ona sh., «Versal» tantanalar saroyi" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Xarita havolasi (Google/Yandex Maps)</label>
+              <input id="inputMapUrl" type="url" oninput="updatePreview()" value="https://maps.google.com" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-sm focus:border-amber-400 outline-none" />
+            </div>
+          </div>
+
+          <!-- 1 martalik javob olish funksiyasi -->
+          <div class="p-3.5 rounded-xl bg-slate-950 border border-amber-500/30 flex items-center justify-between gap-4">
+            <div>
+              <span class="text-sm font-semibold text-amber-300 block">✉️ 1 martalik ixtiyoriy javob xati olish (RSVP)</span>
+              <span class="text-xs text-slate-400">Yoqib qo'yilsa, taklifnomani olgan inson sizga 1 marta javob va tilak xati yoza oladi.</span>
+            </div>
+            <input id="inputEnableRsvp" type="checkbox" checked onchange="updatePreview()" class="w-5 h-5 accent-amber-500 rounded cursor-pointer" />
+          </div>
+
+          <div class="pt-2 flex flex-wrap gap-3">
+            <button onclick="generateAndShareLink()" class="flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/25 hover:opacity-95 transition">
+              🔗 Taklifnomani saqlash va Maxsus Havola olish
+            </button>
+            <button onclick="testFullOpening()" class="py-3.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold text-xs border border-amber-500/30 transition">
+              🎬 Ochilish animatsiyasini sinash
+            </button>
+          </div>
+
+          <!-- Yaratilgan havola qutisi -->
+          <div id="shareLinkBox" class="hidden p-4 rounded-2xl bg-emerald-950/50 border border-emerald-500/40 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-emerald-300">✅ Mehmonlarga yuborish uchun maxsus havola tayyor!</span>
+              <span class="text-[11px] text-slate-400">Mehmondan ro'yxatdan o'tish so'ralmaydi</span>
+            </div>
+            <div class="flex flex-wrap sm:flex-nowrap gap-2">
+              <input id="generatedLinkInput" readonly class="w-full px-3 py-2 rounded-lg bg-slate-950 border border-emerald-500/30 text-xs text-emerald-200 font-mono" />
+              <button onclick="copyShareLink()" class="px-4 py-2 rounded-lg bg-emerald-500 text-slate-950 font-bold text-xs shrink-0">Nusxalash</button>
+              <button onclick="openGuestSimulation()" class="px-3 py-2 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs shrink-0">Mehmon ko'zi bilan ko'rish</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- O'ng ustun: Jonli Taklifnoma Preview -->
+      <div class="lg:col-span-5">
+        <div class="sticky top-20 space-y-3">
+          <div class="flex items-center justify-between px-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-amber-300">📱 Jonli Ko'rinish (Preview)</span>
+            <span id="previewDesignBadge" class="text-xs text-slate-400">Dizayn #1</span>
+          </div>
+          <div id="livePreviewMount" class="w-full"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2-BO'LIM: TARIFLAR VA TO'LOV -->
+    <section id="sectionPricing" class="hidden space-y-8 py-4">
+      <div class="text-center max-w-2xl mx-auto space-y-2">
+        <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">TARIFLAR VA DIZAYNLAR PAKETI</span>
+        <h2 class="text-3xl font-serif-lux font-bold text-white">Barcha 18 xil eksklyuziv dizaynlarni oching</h2>
+        <p class="text-sm text-slate-400">
+          O'zingizga ma'qul tarifni tanlab tugmani bosing. Sizning <strong class="text-amber-300">Profil ID</strong> raqamingiz bilan <strong class="text-sky-400">@S_A_J_E_E_J_A_S</strong> Telegram lichkasi ochiladi. To'lov tasdiqlangach barcha dizaynlar darhol ochiladi!
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div class="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between">
+          <div class="space-y-4">
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-300">Boshlang'ich</span>
+            <h3 class="text-2xl font-bold text-white">Bepul Tarif</h3>
+            <div class="text-3xl font-extrabold text-emerald-400">0 so'm</div>
+            <ul class="space-y-2.5 text-xs text-slate-300 pt-2 border-t border-slate-800">
+              <li>✅ <strong>3 xil oddiyroq standart dizayn</strong> (#1, #2, #3)</li>
+              <li>✅ Musiqa va konvert ochilish animatsiyasi</li>
+              <li>✅ Maxsus havola ulashish va 1 martalik javob olish</li>
+              <li class="text-slate-600">🔒 Qo'shimcha +5 ta Standart dizayn yopiq</li>
+              <li class="text-slate-600">🔒 Qo'shimcha +10 ta VIP dizayn yopiq</li>
+            </ul>
+          </div>
+          <div class="mt-6 pt-4 border-t border-slate-800 text-center text-xs text-slate-400">
+            Ro'yxatdan o'tgan har bir foydalanuvchiga avtomatik beriladi
+          </div>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-gradient-to-b from-slate-900 to-sky-950/40 border-2 border-sky-500/50 flex flex-col justify-between shadow-xl shadow-sky-500/10">
+          <div class="space-y-4">
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-sky-500/20 text-sky-300 border border-sky-500/30">Ommabop tanlov</span>
+            <h3 class="text-2xl font-bold text-white">Standart (+5 Dizayn)</h3>
+            <div class="text-3xl font-extrabold text-sky-400">15 000 so'm</div>
+            <ul class="space-y-2.5 text-xs text-slate-200 pt-2 border-t border-slate-800">
+              <li>✅ Bepul tarifdagi 3 ta dizayn</li>
+              <li>✨ <strong>+5 xil yangi premium dizayn</strong> (Jami 8 ta dizayn)</li>
+              <li>✅ Gulli arkalar, Sharqona mehrob va Qirollik bezaklari</li>
+              <li>✅ Barcha 5 xil ochilish animatsiyasi va MP3 musiqalar</li>
+            </ul>
+          </div>
+          <button onclick="openPaymentContactModal('plus5', '15 000 so\'m (+5 xil dizayn)')" class="mt-6 w-full py-3 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs transition">
+            ✈️ 15 000 so'm to'lash (@S_A_J_E_E_J_A_S)
+          </button>
+        </div>
+
+        <div class="p-6 rounded-3xl bg-gradient-to-b from-amber-950/40 via-slate-900 to-slate-900 border-2 border-amber-400 flex flex-col justify-between shadow-2xl shadow-amber-500/15 relative">
+          <div class="absolute -top-3 right-5 px-3 py-0.5 rounded-full bg-amber-400 text-slate-950 font-extrabold text-[10px] uppercase">Maksimal</div>
+          <div class="space-y-4">
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">VIP To'liq Paket</span>
+            <h3 class="text-2xl font-bold text-amber-300">VIP (+10 Dizayn)</h3>
+            <div class="text-3xl font-extrabold text-amber-400">25 000 so'm</div>
+            <ul class="space-y-2.5 text-xs text-slate-200 pt-2 border-t border-slate-800">
+              <li>🌟 <strong>+10 xil eng hashamatli VIP dizayn</strong></li>
+              <li>🌟 <strong>Barcha 18 ta dizayn 100% ochiq!</strong></li>
+              <li>🌟 360° ochiladigan gullar, Qirollik oltin saroyi, Sakura va Pioniya bog'lari</li>
+            </ul>
+          </div>
+          <button onclick="openPaymentContactModal('plus10', '25 000 so\'m (+10 xil VIP dizayn)')" class="mt-6 w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:opacity-95 text-slate-950 font-bold text-xs shadow-lg shadow-amber-500/25 transition">
+            👑 25 000 so'm to'lash (@S_A_J_E_E_J_A_S)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3-BO'LIM: JAVOB XATLARI -->
+    <section id="sectionResponses" class="hidden space-y-6">
+      <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-amber-300">✉️ Mehmonlardan kelgan 1 martalik javob xatlari</h2>
+          <p class="text-xs text-slate-400">Taklifnomangizga yuborilgan barcha javoblar va tilaklar shu yerda saqlanadi.</p>
+        </div>
+        <button onclick="sendTestRsvp()" class="px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition">
+          🧪 Test javob xati qo'shib ko'rish
+        </button>
+      </div>
+      <div id="rsvpListContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- 4-BO'LIM: ADMIN PANEL -->
+    <section id="sectionAdmin" class="hidden space-y-6">
+      <div class="p-6 rounded-3xl bg-gradient-to-r from-red-950/60 via-slate-900 to-slate-900 border-2 border-red-500/50 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-red-500 text-white">MAXFIY ADMIN PANEL (@S_A_J_E_E_J_A_S)</span>
+            <h2 class="text-2xl font-bold text-white mt-1">Foydalanuvchilar ID raqamiga tarif biriktirish</h2>
+          </div>
+          <div class="flex gap-3 text-center">
+            <div class="px-4 py-2 rounded-2xl bg-slate-950 border border-slate-800">
+              <span class="text-[11px] text-slate-400 block">Jami foydalanuvchilar</span>
+              <span id="adminTotalUsers" class="text-lg font-extrabold text-white">0</span>
+            </div>
+            <div class="px-4 py-2 rounded-2xl bg-slate-950 border border-amber-500/30">
+              <span class="text-[11px] text-amber-300 block">Pullik tarifdagilar</span>
+              <span id="adminPaidUsers" class="text-lg font-extrabold text-amber-400">0</span>
+            </div>
+          </div>
+        </div>
+
+        <form onsubmit="adminAssignPlanById(event)" class="p-4 rounded-2xl bg-slate-950 border border-slate-800 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+          <div class="sm:col-span-5">
+            <label class="block text-xs text-slate-400 mb-1">Mijozning Profil ID raqami yoki Logini</label>
+            <input id="adminTargetIdInput" type="text" required placeholder="Masalan: QT-10492" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm font-mono text-amber-300 focus:border-amber-400 outline-none" />
+          </div>
+          <div class="sm:col-span-4">
+            <label class="block text-xs text-slate-400 mb-1">To'langan tarifni tanlang</label>
+            <select id="adminTargetPlanSelect" class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-sm text-white outline-none focus:border-amber-400">
+              <option value="free">Bepul Tarif (0 so'm — 3 ta dizayn)</option>
+              <option value="plus5">Standart Tarif (15 000 so'm — +5 ta dizayn)</option>
+              <option value="plus10" selected>VIP Tarif (25 000 so'm — +10 ta dizayn)</option>
+            </select>
+          </div>
+          <div class="sm:col-span-3">
+            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-400 to-emerald-600 text-slate-950 font-extrabold text-xs shadow-lg shadow-emerald-500/20 hover:opacity-95 transition">
+              ✅ Tarifni faollashtirish
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-slate-900 border border-slate-800 space-y-4">
+        <h3 class="text-base font-bold text-amber-300">👥 Ro'yxatdan o'tgan foydalanuvchilar ro'yxati</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400">
+                <th class="py-3 px-3">Profil ID</th>
+                <th class="py-3 px-3">Ism / Login</th>
+                <th class="py-3 px-3">Joriy Tarif</th>
+                <th class="py-3 px-3">Ochiq dizaynlar</th>
+                <th class="py-3 px-3 text-right">Tezkor boshqaruv</th>
+              </tr>
+            </thead>
+            <tbody id="adminUsersTableBody" class="divide-y divide-slate-800/70"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= MEHMON REJIMI ================= -->
+  <div id="guestStandaloneView" class="hidden min-h-screen flex flex-col justify-between py-8 px-4 relative z-30">
+    <div id="ExitSimBar" class="hidden max-w-md mx-auto mb-4 px-4 py-2 rounded-full bg-slate-900/90 border border-amber-500/40 text-xs flex items-center justify-between gap-4">
+      <span class="text-amber-300">👁️ Mehmon ko'rinishi</span>
+      <button onclick="exitGuestSimulation()" class="px-2.5 py-1 rounded-full bg-amber-500 text-slate-950 font-bold">← Qaytish</button>
+    </div>
+
+    <div id="guestCardMount" class="w-full max-w-lg mx-auto my-auto"></div>
+
+    <footer class="mt-12 text-center">
+      <button onclick="guestWantsToCreate()" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-amber-300 border border-slate-700/80 text-xs transition shadow-sm">
+        <span>✨ Qulay-Taklifnoma orqali o'z taklifnomangizni yarating</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- ================= OCHILISH ANIMATSIYASI ================= -->
+  <div id="openingOverlay" class="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl hidden flex-col items-center justify-center p-4 text-center">
+    <div id="openingInteractiveBox" class="max-w-sm w-full p-8 rounded-3xl bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-amber-500/40 shadow-2xl space-y-5 transition-all duration-700">
+      <div id="openingVisualIcon" class="w-28 h-28 mx-auto rounded-full bg-amber-500/15 border border-amber-400/40 flex items-center justify-center text-6xl animate-float">
+        🌸
+      </div>
+      <div class="space-y-1">
+        <span class="text-[11px] uppercase tracking-widest text-amber-400 font-semibold">Qulay-Taklifnoma</span>
+        <h3 id="openingOverlayNames" class="text-3xl font-serif-lux font-bold text-white">Maxsus Taklifnoma</h3>
+        <p id="openingOverlayGuest" class="text-xs text-slate-400">Siz uchun maxsus tayyorlandi</p>
+      </div>
+      <button onclick="triggerOpenInvitation()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 text-slate-950 font-extrabold text-sm shadow-xl shadow-amber-500/25 hover:scale-[1.02] transition">
+        ✨ Taklifnomani Ochish (Musiqa bilan)
+      </button>
+    </div>
+  </div>
+
+  <audio id="bgAudioPlayer" loop preload="auto"></audio>
+
+  <script>
+    const ADMIN_SECRET_CREDENTIAL = "Qulay-Taklifnoma_1202@/*Admin";
+    const ADMIN_TELEGRAM_USERNAME = "S_A_J_E_E_J_A_S";
+
+    const CATEGORIES = [
+      { id: 'wedding', name: "Nikoh to'yi", icon: "💍", defaultNames: "Sardorbek & Malika" },
+      { id: 'sunnat', name: "Xatna to'yi", icon: "👑", defaultNames: "Shahzodabekning Xatna to'yi" },
+      { id: 'birthday', name: "Tug'ilgan kun", icon: "🎂", defaultNames: "Imronbek 7 yoshda!" },
+      { id: 'gathering', name: "O'tirish / Yig'in", icon: "🍵", defaultNames: "Qarindoshlar diydor oqshomi" },
+      { id: 'other', name: "Boshqa marosim", icon: "✨", defaultNames: "Quvonchli kunimiz" }
+    ];
+
+    const DESIGNS_18 = [
+      { id: 1, name: "Oddiy Klassik Oq-Oltin", tier: "free", gender: "universal", shape: "card-shape-classic", bg: "from-slate-900 via-slate-900 to-slate-950", border: "border-amber-500/40", accent: "text-amber-300", badge: "Bepul", ornament: "simple" },
+      { id: 2, name: "Minimalist Moviy Osmon", tier: "free", gender: "male", shape: "card-shape-classic", bg: "from-slate-900 via-sky-950/60 to-slate-950", border: "border-sky-400/40", accent: "text-sky-300", badge: "Bepul", ornament: "simple" },
+      { id: 3, name: "Mayin Pushti Klassika", tier: "free", gender: "female", shape: "card-shape-classic", bg: "from-slate-900 via-pink-950/50 to-slate-950", border: "border-pink-400/40", accent: "text-pink-300", badge: "Bepul", ornament: "simple" },
+      { id: 4, name: "Qirollik Ko'k va Toj", tier: "plus5", gender: "male", shape: "card-shape-royal", bg: "from-blue-950 via-slate-900 to-indigo-950", border: "border-amber-400/70", accent: "text-amber-300", badge: "15 000 so'm", ornament: "crown" },
+      { id: 5, name: "Zumrad Sharqona Mehrob", tier: "plus5", gender: "male", shape: "card-shape-arch", bg: "from-emerald-950 via-teal-950 to-slate-950", border: "border-emerald-400/70", accent: "text-emerald-300", badge: "15 000 so'm", ornament: "islamic" },
+      { id: 6, name: "Atirgul G'unchasi Arkasi", tier: "plus5", gender: "female", shape: "card-shape-arch", bg: "from-rose-950 via-pink-950 to-slate-950", border: "border-rose-400/70", accent: "text-rose-200", badge: "15 000 so'm", ornament: "rose" },
+      { id: 7, name: "Qora-Oltin Art-Deco", tier: "plus5", gender: "male", shape: "card-shape-royal", bg: "from-neutral-950 via-stone-900 to-neutral-950", border: "border-yellow-500/80", accent: "text-yellow-400", badge: "15 000 so'm", ornament: "crown" },
+      { id: 8, name: "Oltin Samarqand Gumbazi", tier: "plus5", gender: "universal", shape: "card-shape-dome", bg: "from-amber-950/80 via-slate-900 to-yellow-950/70", border: "border-amber-400", accent: "text-amber-200", badge: "15 000 so'm", ornament: "islamic" },
+      { id: 9, name: "VIP Sakura va Pioniya Bog'i", tier: "plus10", gender: "female", shape: "card-shape-arch", bg: "from-fuchsia-950 via-rose-950 to-slate-950", border: "border-pink-300", accent: "text-pink-200", badge: "25 000 so'm VIP", ornament: "rose" },
+      { id: 10, name: "VIP Shahzoda Oltin Qalqoni", tier: "plus10", gender: "male", shape: "card-shape-royal", bg: "from-indigo-950 via-slate-950 to-amber-950/60", border: "border-amber-400", accent: "text-amber-300", badge: "25 000 so'm VIP", ornament: "crown" },
+      { id: 11, name: "VIP Lavanda va Kapalaklar", tier: "plus10", gender: "female", shape: "card-shape-dome", bg: "from-purple-950 via-violet-950 to-slate-950", border: "border-purple-300", accent: "text-purple-200", badge: "25 000 so'm VIP", ornament: "rose" },
+      { id: 12, name: "VIP Kosmik Galaktika", tier: "plus10", gender: "male", shape: "card-shape-royal", bg: "from-slate-950 via-cyan-950 to-blue-950", border: "border-cyan-400", accent: "text-cyan-300", badge: "25 000 so'm VIP", ornament: "crown" },
+      { id: 13, name: "VIP Oq-Oltin Kelinlik Gulchambari", tier: "plus10", gender: "female", shape: "card-shape-arch", bg: "from-amber-950/60 via-rose-950/60 to-slate-950", border: "border-amber-300", accent: "text-amber-200", badge: "25 000 so'm VIP", ornament: "rose" },
+      { id: 14, name: "VIP Kumush Imperiya Gerbi", tier: "plus10", gender: "male", shape: "card-shape-royal", bg: "from-zinc-900 via-slate-950 to-zinc-950", border: "border-slate-300", accent: "text-slate-100", badge: "25 000 so'm VIP", ornament: "crown" },
+      { id: 15, name: "VIP Buxoro Zarhal Naqshi", tier: "plus10", gender: "universal", shape: "card-shape-dome", bg: "from-yellow-950/80 via-amber-950/60 to-slate-950", border: "border-yellow-400", accent: "text-yellow-200", badge: "25 000 so'm VIP", ornament: "islamic" },
+      { id: 16, name: "VIP Malika Atirgul Qasri", tier: "plus10", gender: "female", shape: "card-shape-arch", bg: "from-pink-950 via-rose-900/60 to-slate-950", border: "border-rose-300", accent: "text-rose-100", badge: "25 000 so'm VIP", ornament: "rose" },
+      { id: 17, name: "VIP Moviy Sapfir Saroyi", tier: "plus10", gender: "male", shape: "card-shape-dome", bg: "from-blue-950 via-sky-900/50 to-slate-950", border: "border-sky-300", accent: "text-sky-200", badge: "25 000 so'm VIP", ornament: "islamic" },
+      { id: 18, name: "VIP Shohona Brilliant", tier: "plus10", gender: "universal", shape: "card-shape-arch", bg: "from-amber-900/50 via-slate-900 to-emerald-950/60", border: "border-amber-300", accent: "text-amber-200", badge: "25 000 so'm VIP", ornament: "rose" }
+    ];
+
+    const MUSIC_TRACKS = {
+      waltz: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3",
+      wedding: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3",
+      festive: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_946b895f01.mp3",
+      birthday: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3",
+      royal: "https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3"
+    };
+
+    let currentUser = null;
+    let authMode = 'login';
+    let captchaExpected = 9;
+    let lastAuthAttemptTime = 0;
+
+    let selectedCategory = 'wedding';
+    let selectedDesignId = 1;
+    let activeDesignFilter = 'all';
+    let isGuestStandalone = false;
+    let currentInvitationId = 'inv_default';
+    let customAudioDataUrl = null;
+
+    function getUsersDB() {
+      const raw = localStorage.getItem('qt_users_db_v2');
+      if (!raw) {
+        const sampleUsers = [
+          { id: 'QT-10492', name: 'Azizbek Karimov', login: '+998901234567', pass: '12345', plan: 'free', isAdmin: false },
+          { id: 'QT-77320', name: 'Dilnoza Saidova', login: '+998939876543', pass: '12345', plan: 'plus5', isAdmin: false }
+        ];
+        localStorage.setItem('qt_users_db_v2', JSON.stringify(sampleUsers));
+        return sampleUsers;
+      }
+      return JSON.parse(raw);
+    }
+
+    function saveUsersDB(list) {
+      localStorage.setItem('qt_users_db_v2', JSON.stringify(list));
+    }
+
+    function getRsvpDB() {
+      const raw = localStorage.getItem('qt_rsvp_db_v2');
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveRsvpDB(list) {
+      localStorage.setItem('qt_rsvp_db_v2', JSON.stringify(list));
+    }
+
+    function isDesignUnlockedForUser(design, user) {
+      if (!user) return design.tier === 'free';
+      if (user.isAdmin || user.plan === 'admin' || user.plan === 'plus10') return true;
+      if (user.plan === 'plus5') return design.tier === 'free' || design.tier === 'plus5';
+      return design.tier === 'free';
+    }
+
+    function generateCaptcha() {
+      const a = Math.floor(Math.random() * 8) + 2;
+      const b = Math.floor(Math.random() * 8) + 1;
+      captchaExpected = a + b;
+      document.getElementById('captchaQuestion').textContent = `${a} + ${b} = ?`;
+      document.getElementById('captchaInput').value = '';
+    }
+
+    function setAuthMode(mode) {
+      authMode = mode;
+      const loginBtn = document.getElementById('modeLoginBtn');
+      const regBtn = document.getElementById('modeRegisterBtn');
+      const nameField = document.getElementById('registerNameField');
+      if (mode === 'register') {
+        regBtn.className = "py-2 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition";
+        loginBtn.className = "py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+        nameField.classList.remove('hidden');
+      } else {
+        loginBtn.className = "py-2 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition";
+        regBtn.className = "py-2 rounded-lg text-xs font-bold text-slate-400 hover:text-white transition";
+        nameField.classList.add('hidden');
+      }
+      document.getElementById('authErrorMsg').classList.add('hidden');
+      generateCaptcha();
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('authErrorMsg');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastAuthAttemptTime < 1200) {
+        return showError("⏳ DDoS himoyasi: Iltimos, so'rovlarni juda tez yubormang!");
+      }
+      lastAuthAttemptTime = now;
+
+      const loginVal = document.getElementById('authLoginInput').value.trim();
+      const passVal = document.getElementById('authPasswordInput').value.trim();
+      const nameVal = document.getElementById('authFullName').value.trim();
+      const captchaVal = parseInt(document.getElementById('captchaInput').value, 10);
+
+      if (loginVal === ADMIN_SECRET_CREDENTIAL && passVal === ADMIN_SECRET_CREDENTIAL) {
+        currentUser = {
+          id: 'ADMIN-001',
+          name: 'Bosh Administrator (@S_A_J_E_E_J_A_S)',
+          login: ADMIN_SECRET_CREDENTIAL,
+          plan: 'admin',
+          isAdmin: true
+        };
+        localStorage.setItem('qt_active_session_v2', JSON.stringify(currentUser));
+        document.getElementById('authModal').classList.add('hidden');
+        syncUserSessionUI();
+        switchTab('admin');
+        return;
+      }
+
+      if (captchaVal !== captchaExpected) {
+        generateCaptcha();
+        return showError("❌ Anti-DDoS tekshiruv javobi noto'g'ri! Qaytadan hisoblang.");
+      }
+
+      const users = getUsersDB();
+
+      if (authMode === 'register') {
+        const exists = users.find(u => u.login.toLowerCase() === loginVal.toLowerCase());
+        if (exists) {
+          return showError("Bu login yoki telefon raqam allaqachon ro'yxatdan o'tgan.");
+        }
+        const newId = 'QT-' + Math.floor(10000 + Math.random() * 90000);
+        const newUser = {
+          id: newId,
+          name: nameVal || "Foydalanuvchi",
+          login: loginVal,
+          pass: passVal,
+          plan: 'free',
+          isAdmin: false
+        };
+        users.push(newUser);
+        saveUsersDB(users);
+        currentUser = newUser;
+      } else {
+        const found = users.find(u => u.login.toLowerCase() === loginVal.toLowerCase() && u.pass === passVal);
+        if (!found) {
+          return showError("Login yoki parol noto'g'ri!");
+        }
+        currentUser = found;
+      }
+
+      localStorage.setItem('qt_active_session_v2', JSON.stringify(currentUser));
+      document.getElementById('authModal').classList.add('hidden');
+      syncUserSessionUI();
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('qt_active_session_v2');
+      currentUser = null;
+      generateCaptcha();
+      document.getElementById('authModal').classList.remove('hidden');
+    }
+
+    function syncUserSessionUI() {
+      if (!currentUser) return;
+      if (!currentUser.isAdmin) {
+        const users = getUsersDB();
+        const fresh = users.find(u => u.id === currentUser.id);
+        if (fresh) {
+          currentUser.plan = fresh.plan;
+          localStorage.setItem('qt_active_session_v2', JSON.stringify(currentUser));
+        }
+      }
+
+      document.getElementById('currentUserIdDisplay').textContent = currentUser.id;
+      document.getElementById('payBoxUserId').textContent = currentUser.id;
+      document.getElementById('currentUserNameDisplay').textContent = currentUser.name;
+
+      const planLabels = {
+        free: { text: "Bepul Tarif (3 ta dizayn ochiq)", cls: "bg-slate-700 text-slate-200" },
+        plus5: { text: "Standart Tarif (+5 dizayn / Jami 8 ta)", cls: "bg-sky-500 text-slate-950" },
+        plus10: { text: "VIP Tarif (+10 dizayn / Barcha 18 ta ochiq)", cls: "bg-amber-400 text-slate-950" },
+        admin: { text: "👑 BOSH ADMIN (Barcha imkoniyatlar ochiq)", cls: "bg-red-500 text-white" }
+      };
+
+      const pInfo = planLabels[currentUser.plan] || planLabels.free;
+      const badge = document.getElementById('currentUserPlanBadge');
+      badge.textContent = pInfo.text;
+      badge.className = `px-2.5 py-0.5 rounded-full text-xs font-bold ${pInfo.cls}`;
+
+      document.getElementById('userBadge').textContent = `${currentUser.name} (${currentUser.id})`;
+
+      const adminBtn = document.getElementById('tabAdminBtn');
+      if (currentUser.isAdmin) {
+        adminBtn.classList.remove('hidden');
+      } else {
+        adminBtn.classList.add('hidden');
+      }
+
+      renderDesignsGrid();
+      updatePreview();
+      renderAdminPanel();
+      renderRsvpList();
+    }
+
+    function renderAdminPanel() {
+      if (!currentUser || !currentUser.isAdmin) return;
+      const users = getUsersDB();
+      document.getElementById('adminTotalUsers').textContent = users.length;
+      document.getElementById('adminPaidUsers').textContent = users.filter(u => u.plan === 'plus5' || u.plan === 'plus10').length;
+
+      const tbody = document.getElementById('adminUsersTableBody');
+      tbody.innerHTML = users.map(u => {
+        const badgeMap = {
+          free: '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">Bepul (0 so\'m)</span>',
+          plus5: '<span class="px-2 py-0.5 rounded bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold">15 000 so\'m (+5 dizayn)</span>',
+          plus10: '<span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">25 000 so\'m (+10 VIP)</span>'
+        };
+        const countMap = { free: '3 / 18 ta', plus5: '8 / 18 ta', plus10: '18 / 18 ta (To\'liq)' };
+        return `
+          <tr class="hover:bg-slate-800/40 transition">
+            <td class="py-3 px-3 font-mono font-bold text-amber-300">${u.id}</td>
+            <td class="py-3 px-3">
+              <div class="font-bold text-white">${u.name}</div>
+              <div class="text-slate-400 text-[11px]">${u.login}</div>
+            </td>
+            <td class="py-3 px-3">${badgeMap[u.plan] || badgeMap.free}</td>
+            <td class="py-3 px-3 font-semibold text-slate-300">${countMap[u.plan] || '3 / 18 ta'}</td>
+            <td class="py-3 px-3 text-right space-x-1.5">
+              <button onclick="adminQuickSetPlan('${u.id}', 'free')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">Bepul</button>
+              <button onclick="adminQuickSetPlan('${u.id}', 'plus5')" class="px-2.5 py-1 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-[11px]">+5</button>
+              <button onclick="adminQuickSetPlan('${u.id}', 'plus10')" class="px-2.5 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-[11px]">+10 VIP</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function adminAssignPlanById(e) {
+      e.preventDefault();
+      const targetKey = document.getElementById('adminTargetIdInput').value.trim();
+      const newPlan = document.getElementById('adminTargetPlanSelect').value;
+      const users = getUsersDB();
+      const idx = users.findIndex(u => u.id.toLowerCase() === targetKey.toLowerCase() || u.login.toLowerCase() === targetKey.toLowerCase());
+
+      if (idx === -1) {
+        const createdId = targetKey.toUpperCase().startsWith('QT-') ? targetKey.toUpperCase() : ('QT-' + targetKey.toUpperCase());
+        users.push({
+          id: createdId,
+          name: "Mijoz (" + createdId + ")",
+          login: createdId,
+          pass: "12345",
+          plan: newPlan,
+          isAdmin: false
+        });
+        saveUsersDB(users);
+        renderAdminPanel();
+        alert(`✅ Yangi ID (${createdId}) bazaga qo'shildi va tarif faollashtirildi!`);
+        return;
+      }
+
+      users[idx].plan = newPlan;
+      saveUsersDB(users);
+      renderAdminPanel();
+      alert(`✅ ${users[idx].name} (${users[idx].id}) uchun tarif faollashtirildi!`);
+    }
+
+    function adminQuickSetPlan(userId, plan) {
+      const users = getUsersDB();
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        user.plan = plan;
+        saveUsersDB(users);
+        renderAdminPanel();
+      }
+    }
+
+    function renderCategories() {
+      const container = document.getElementById('categoryGrid');
+      container.innerHTML = CATEGORIES.map(cat => {
+        const active = cat.id === selectedCategory;
+        return `
+          <button onclick="selectCategory('${cat.id}')" class="p-3 rounded-xl border text-left transition flex flex-col justify-between ${active ? 'bg-amber-500/20 border-amber-400 text-white shadow-lg shadow-amber-500/10' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'}">
+            <span class="text-2xl">${cat.icon}</span>
+            <span class="text-xs font-bold mt-1.5 block">${cat.name}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectCategory(catId) {
+      selectedCategory = catId;
+      const catObj = CATEGORIES.find(c => c.id === catId);
+      if (catObj) {
+        document.getElementById('inputMainNames').value = catObj.defaultNames;
+      }
+      renderCategories();
+      updatePreview();
+    }
+
+    function filterDesigns(filterKey) {
+      activeDesignFilter = filterKey;
+      ['all', 'free', 'male', 'female', 'universal'].forEach(k => {
+        const btn = document.getElementById('filter_' + k);
+        if (btn) {
+          btn.className = (k === filterKey)
+            ? "px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 text-slate-950"
+            : "px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700";
+        }
+      });
+      renderDesignsGrid();
+    }
+
+    function renderDesignsGrid() {
+      const grid = document.getElementById('designsGrid');
+      const filtered = DESIGNS_18.filter(d => {
+        if (activeDesignFilter === 'all') return true;
+        if (activeDesignFilter === 'free') return d.tier === 'free';
+        return d.gender === activeDesignFilter;
+      });
+
+      grid.innerHTML = filtered.map(d => {
+        const unlocked = isDesignUnlockedForUser(d, currentUser);
+        const isSelected = d.id === selectedDesignId;
+        const genderBadge = d.gender === 'male' ? '👔 Erkak/O\'g\'il' : d.gender === 'female' ? '🌸 Ayol/Qiz' : '✨ Universal';
+        return `
+          <div onclick="handleSelectDesign(${d.id})" class="cursor-pointer rounded-2xl p-3 border transition relative overflow-hidden bg-gradient-to-br ${d.bg} ${isSelected ? 'ring-2 ring-amber-400 border-amber-400' : 'border-slate-800 hover:border-slate-600'}">
+            <div class="flex items-center justify-between text-[10px] mb-2">
+              <span class="px-2 py-0.5 rounded-full font-bold ${d.tier === 'free' ? 'bg-emerald-500/20 text-emerald-300' : d.tier === 'plus5' ? 'bg-sky-500/20 text-sky-300' : 'bg-amber-500/20 text-amber-300'}">
+                ${ unlocked ? '🔓 ' + d.badge : '🔒 ' + d.badge }
+              </span>
+              <span class="text-slate-400">#${d.id}</span>
+            </div>
+            <div class="font-serif-lux font-bold text-sm text-white truncate">${d.name}</div>
+            <div class="text-[11px] text-slate-400 mt-1 flex items-center justify-between">
+              <span>${genderBadge}</span>
+              <span>${unlocked ? 'Tanlash →' : 'To\'lov'}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleSelectDesign(designId) {
+      const design = DESIGNS_18.find(d => d.id === designId);
+      if (!design) return;
+
+      if (!isDesignUnlockedForUser(design, currentUser)) {
+        const planTitle = design.tier === 'plus5' ? "15 000 so'm (+5 xil dizayn)" : "25 000 so'm (+10 xil VIP dizayn)";
+        openPaymentContactModal(design.tier, planTitle);
+        return;
+      }
+
+      selectedDesignId = designId;
+      renderDesignsGrid();
+      updatePreview();
+    }
+
+    function getOrnamentSvg(type) {
+      if (type === 'rose') {
+        return `
+          <svg class="w-28 h-12 mx-auto text-pink-300/90" viewBox="0 0 200 60" fill="none">
+            <path d="M20 30 Q60 5 100 30 Q140 55 180 30" stroke="currentColor" stroke-width="2"/>
+            <circle cx="100" cy="30" r="10" fill="currentColor"/>
+            <circle cx="75" cy="24" r="6" fill="currentColor" opacity="0.7"/>
+            <circle cx="125" cy="36" r="6" fill="currentColor" opacity="0.7"/>
+          </svg>
+        `;
+      }
+      if (type === 'crown') {
+        return `
+          <svg class="w-20 h-10 mx-auto text-amber-400" viewBox="0 0 100 50" fill="currentColor">
+            <path d="M10 40 L20 15 L50 30 L80 15 L90 40 Z" />
+            <circle cx="20" cy="10" r="4"/><circle cx="50" cy="8" r="5"/><circle cx="80" cy="10" r="4"/>
+          </svg>
+        `;
+      }
+      if (type === 'islamic') {
+        return `
+          <svg class="w-24 h-10 mx-auto text-amber-300/90" viewBox="0 0 120 40" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="60,4 68,16 82,16 70,24 75,36 60,28 45,36 50,24 38,16 52,16" />
+            <line x1="10" y1="20" x2="32" y2="20"/><line x1="88" y1="20" x2="110" y2="20"/>
+          </svg>
+        `;
+      }
+      return `<div class="w-16 h-0.5 bg-amber-400/50 mx-auto my-2"></div>`;
+    }
+
+    function getFormState() {
+      return {
+        invId: currentInvitationId,
+        cat: selectedCategory,
+        designId: selectedDesignId,
+        openStyle: document.getElementById('openStyleSelect').value,
+        music: document.getElementById('musicSelect').value,
+        customAudio: customAudioDataUrl,
+        names: document.getElementById('inputMainNames').value,
+        guest: document.getElementById('inputGuestName').value,
+        msg: document.getElementById('inputMessage').value,
+        date: document.getElementById('inputDate').value,
+        time: document.getElementById('inputTime').value,
+        host: document.getElementById('inputHost').value,
+        loc: document.getElementById('inputLocation').value,
+        map: document.getElementById('inputMapUrl').value,
+        rsvp: document.getElementById('inputEnableRsvp').checked
+      };
+    }
+
+    function buildInvitationHTML(state) {
+      const design = DESIGNS_18.find(d => d.id === Number(state.designId)) || DESIGNS_18[0];
+      const catObj = CATEGORIES.find(c => c.id === state.cat) || CATEGORIES[0];
+      const alreadySentKey = 'qt_sent_rsvp_' + state.invId;
+      const alreadySent = localStorage.getItem(alreadySentKey);
+
+      return `
+        <div class="${design.shape} bg-gradient-to-b ${design.bg} border-2 ${design.border} p-6 sm:p-9 text-center shadow-2xl relative overflow-hidden">
+          <div class="mb-3">${getOrnamentSvg(design.ornament)}</div>
+
+          <span class="px-3 py-1 rounded-full text-[11px] uppercase tracking-widest bg-white/10 ${design.accent} font-semibold">
+            ${catObj.icon} ${catObj.name}
+          </span>
+
+          ${state.guest ? `<p class="mt-4 text-xs uppercase tracking-widest text-slate-300">Hurmatli: <strong class="text-white">${state.guest}</strong></p>` : ''}
+
+          <h1 class="mt-3 text-3xl sm:text-4xl font-serif-lux font-bold ${design.accent} leading-tight">
+            ${state.names}
+          </h1>
+
+          <p class="mt-4 text-xs sm:text-sm text-slate-200 leading-relaxed max-w-md mx-auto">
+            ${state.msg}
+          </p>
+
+          <div class="my-6 p-4 rounded-2xl bg-slate-950/60 border border-white/10 grid grid-cols-2 gap-3 max-w-xs mx-auto">
+            <div>
+              <span class="text-[10px] uppercase text-slate-400 block">Sana</span>
+              <span class="text-sm font-bold text-white">${state.date}</span>
+            </div>
+            <div class="border-l border-white/10">
+              <span class="text-[10px] uppercase text-slate-400 block">Boshlanish vaqti</span>
+              <span class="text-sm font-bold ${design.accent}">${state.time}</span>
+            </div>
+          </div>
+
+          <div class="space-y-1 text-xs text-slate-300">
+            <p class="font-bold text-white">📍 ${state.loc}</p>
+            <p class="text-slate-400">Mezbon: ${state.host}</p>
+          </div>
+
+          ${state.map ? `
+            <a href="${state.map}" target="_blank" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition">
+              🗺️ Xaritada manzilni ochish
+            </a>
+          ` : ''}
+
+          ${state.rsvp ? `
+            <div class="mt-7 pt-6 border-t border-white/15 text-left">
+              ${alreadySent ? `
+                <div class="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-400/40 text-center space-y-1">
+                  <div class="text-sm font-bold text-emerald-300">✅ Javob xatingiz taklifnoma egasiga yuborilgan!</div>
+                  <p class="text-[11px] text-slate-300">E'tiboringiz uchun tashakkur.</p>
+                </div>
+              ` : `
+                <p class="text-xs font-bold ${design.accent} mb-2 text-center">✉️ Taklifnoma egasiga 1 martalik javob xati yozish</p>
+                <form onsubmit="submitOneTimeRsvp(event, '${state.invId}')" class="space-y-2.5">
+                  <input id="rsvpGuestName_${state.invId}" required placeholder="Ism-familiyangiz" class="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-white/15 text-xs text-white outline-none" />
+                  <select id="rsvpStatus_${state.invId}" class="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-white/15 text-xs text-white outline-none">
+                    <option value="Albatta boraman 🎉">🎉 Albatta boraman</option>
+                    <option value="Oilaviy boramiz 👨‍👩‍👧‍👦">👨‍👩‍👧‍👦 Oilaviy boramiz</option>
+                    <option value="Afsuski bora olmayman 🙏">🙏 Afsuski bora olmayman, tabriklayman!</option>
+                  </select>
+                  <textarea id="rsvpNote_${state.invId}" rows="2" required placeholder="Tilak va javob xatingizni yozing..." class="w-full px-3 py-2 rounded-xl bg-slate-950/80 border border-white/15 text-xs text-white outline-none"></textarea>
+                  <button type="submit" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition">
+                    📨 1 martalik javobni yuborish
+                  </button>
+                </form>
+              `}
+            </div>
+          ` : ''}
+
+          <div class="mt-5">${getOrnamentSvg(design.ornament)}</div>
+        </div>
+      `;
+    }
+
+    function updatePreview() {
+      const state = getFormState();
+      const design = DESIGNS_18.find(d => d.id === Number(state.designId)) || DESIGNS_18[0];
+      document.getElementById('previewDesignBadge').textContent = `#${design.id} • ${design.name}`;
+      document.getElementById('livePreviewMount').innerHTML = buildInvitationHTML(state);
+    }
+
+    function handleCustomAudioUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        customAudioDataUrl = evt.target.result;
+        document.getElementById('uploadedMusicName').textContent = `✅ Yuklandi: ${file.name}`;
+        const player = document.getElementById('bgAudioPlayer');
+        player.src = customAudioDataUrl;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function submitOneTimeRsvp(e, invId) {
+      e.preventDefault();
+      const name = document.getElementById('rsvpGuestName_' + invId).value.trim();
+      const status = document.getElementById('rsvpStatus_' + invId).value;
+      const note = document.getElementById('rsvpNote_' + invId).value.trim();
+
+      const list = getRsvpDB();
+      list.unshift({
+        id: 'RSVP-' + Date.now(),
+        invId,
+        guestName: name,
+        status,
+        note,
+        time: new Date().toLocaleString('uz-UZ')
+      });
+      saveRsvpDB(list);
+      localStorage.setItem('qt_sent_rsvp_' + invId, 'true');
+
+      if (isGuestStandalone) {
+        const params = new URLSearchParams(window.location.search);
+        const state = decodeInviteFromParams(params) || getFormState();
+        document.getElementById('guestCardMount').innerHTML = buildInvitationHTML(state);
+      } else {
+        updatePreview();
+      }
+      renderRsvpList();
+    }
+
+    function renderRsvpList() {
+      const list = getRsvpDB();
+      document.getElementById('rsvpCountBadge').textContent = list.length;
+      const container = document.getElementById('rsvpListContainer');
+      if (list.length === 0) {
+        container.innerHTML = `<div class="col-span-2 p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-xs text-slate-400">Hozircha mehmonlardan javob xatlari kelmagan.</div>`;
+        return;
+      }
+      container.innerHTML = list.map(item => `
+        <div class="p-4 rounded-2xl bg-slate-900 border border-amber-500/30 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-sm text-white">👤 ${item.guestName}</span>
+            <span class="text-[11px] text-slate-400">${item.time}</span>
+          </div>
+          <div class="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300">
+            ${item.status}
+          </div>
+          <p class="text-xs text-slate-200 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            "${item.note}"
+          </p>
+        </div>
+      `).join('');
+    }
+
+    function sendTestRsvp() {
+      const list = getRsvpDB();
+      list.unshift({
+        id: 'RSVP-' + Date.now(),
+        invId: currentInvitationId,
+        guestName: 'Jamshidbek va oilasi',
+        status: 'Albatta boraman 🎉',
+        note: 'To\'ylar muborak bo\'lsin!',
+        time: new Date().toLocaleString('uz-UZ')
+      });
+      saveRsvpDB(list);
+      renderRsvpList();
+    }
+
+    function generateAndShareLink() {
+      currentInvitationId = 'inv_' + Math.floor(100000 + Math.random() * 900000);
+      const state = getFormState();
+      const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(state)))));
+      const url = `${window.location.origin}${window.location.pathname}?invite=${encoded}`;
+
+      document.getElementById('generatedLinkInput').value = url;
+      document.getElementById('shareLinkBox').classList.remove('hidden');
+    }
+
+    function copyShareLink() {
+      const input = document.getElementById('generatedLinkInput');
+      navigator.clipboard.writeText(input.value);
+      alert("✅ Maxsus taklifnoma havolasi nusxalandi!");
+    }
+
+    function decodeInviteFromParams(params) {
+      try {
+        const raw = params.get('invite');
+        if (!raw) return null;
+        return JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(raw)))));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function openGuestSimulation() {
+      const state = getFormState();
+      enterGuestModeWithState(state, true);
+    }
+
+    function exitGuestSimulation() {
+      isGuestStandalone = false;
+      document.getElementById('guestStandaloneView').classList.add('hidden');
+      document.getElementById('mainHeader').classList.remove('hidden');
+      document.getElementById('creatorWorkspace').classList.remove('hidden');
+    }
+
+    function enterGuestModeWithState(state, isSim = false) {
+      isGuestStandalone = true;
+      document.getElementById('mainHeader').classList.add('hidden');
+      document.getElementById('creatorWorkspace').classList.add('hidden');
+      document.getElementById('authModal').classList.add('hidden');
+      document.getElementById('guestStandaloneView').classList.remove('hidden');
+
+      if (isSim) {
+        document.getElementById('ExitSimBar').classList.remove('hidden');
+      }
+
+      if (state.customAudio) {
+        customAudioDataUrl = state.customAudio;
+      }
+
+      document.getElementById('guestCardMount').innerHTML = buildInvitationHTML(state);
+      showOpeningOverlayForState(state);
+    }
+
+    function guestWantsToCreate() {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      isGuestStandalone = false;
+      document.getElementById('guestStandaloneView').classList.add('hidden');
+      document.getElementById('mainHeader').classList.remove('hidden');
+      document.getElementById('creatorWorkspace').classList.remove('hidden');
+
+      if (!currentUser) {
+        setAuthMode('register');
+        document.getElementById('authModal').classList.remove('hidden');
+      }
+    }
+
+    function showOpeningOverlayForState(state) {
+      const icons = { flower: '🌸', gate: '🚪', envelope: '✉️', scroll: '📜', gift: '🎁' };
+      document.getElementById('openingVisualIcon').textContent = icons[state.openStyle] || '🌸';
+      document.getElementById('openingOverlayNames').textContent = state.names;
+      document.getElementById('openingOverlayGuest').textContent = state.guest ? `Hurmatli ${state.guest} uchun` : 'Maxsus taklifnoma';
+      document.getElementById('openingOverlay').classList.remove('hidden');
+      document.getElementById('openingOverlay').classList.add('flex');
+    }
+
+    function testFullOpening() {
+      showOpeningOverlayForState(getFormState());
+    }
+
+    function triggerOpenInvitation() {
+      const box = document.getElementById('openingInteractiveBox');
+      box.style.transform = 'scale(1.35) rotate(3deg)';
+      box.style.opacity = '0';
+      playSelectedMusic();
+      spawnPetals();
+      setTimeout(() => {
+        document.getElementById('openingOverlay').classList.add('hidden');
+        document.getElementById('openingOverlay').classList.remove('flex');
+        box.style.transform = '';
+        box.style.opacity = '1';
+      }, 650);
+    }
+
+    function changeMusicTrack() {
+      const player = document.getElementById('bgAudioPlayer');
+      const key = document.getElementById('musicSelect').value;
+      customAudioDataUrl = null;
+      document.getElementById('uploadedMusicName').textContent = "Tayyor musiqalardan biri tanlandi";
+      player.src = MUSIC_TRACKS[key] || MUSIC_TRACKS.waltz;
+      if (!player.paused) player.play();
+    }
+
+    function playSelectedMusic() {
+      const player = document.getElementById('bgAudioPlayer');
+      if (customAudioDataUrl) {
+        player.src = customAudioDataUrl;
+      } else {
+        const key = document.getElementById('musicSelect').value;
+        if (!player.src) player.src = MUSIC_TRACKS[key] || MUSIC_TRACKS.waltz;
+      }
+      player.play().then(() => {
+        document.getElementById('audioPlayBtn').textContent = '⏸ To\'xtatish';
+      }).catch(() => {});
+    }
+
+    function toggleAudioPlayback() {
+      const player = document.getElementById('bgAudioPlayer');
+      if (customAudioDataUrl) {
+        player.src = customAudioDataUrl;
+      } else {
+        const key = document.getElementById('musicSelect').value;
+        if (!player.src) player.src = MUSIC_TRACKS[key] || MUSIC_TRACKS.waltz;
+      }
+      if (player.paused) {
+        player.play();
+        document.getElementById('audioPlayBtn').textContent = '⏸ To\'xtatish';
+      } else {
+        player.pause();
+        document.getElementById('audioPlayBtn').textContent = '▶ Tinglash';
+      }
+    }
+
+    function spawnPetals() {
+      const container = document.getElementById('particlesContainer');
+      container.innerHTML = '';
+      const symbols = ['🌸', '✨', '🌹', '💮'];
+      for (let i = 0; i < 18; i++) {
+        const div = document.createElement('div');
+        div.className = 'petal text-lg';
+        div.textContent = symbols[i % symbols.length];
+        div.style.left = Math.random() * 100 + 'vw';
+        div.style.animationDuration = (6 + Math.random() * 7) + 's';
+        div.style.animationDelay = (Math.random() * 3) + 's';
+        container.appendChild(div);
+      }
+    }
+
+    function switchTab(tab) {
+      ['Builder', 'Pricing', 'Responses', 'Admin'].forEach(name => {
+        const sec = document.getElementById('section' + name);
+        if (sec) sec.classList.add('hidden');
+      });
+      if (tab === 'builder') document.getElementById('sectionBuilder').classList.remove('hidden');
+      if (tab === 'pricing') document.getElementById('sectionPricing').classList.remove('hidden');
+      if (tab === 'responses') {
+        document.getElementById('sectionResponses').classList.remove('hidden');
+        renderRsvpList();
+      }
+      if (tab === 'admin') {
+        document.getElementById('sectionAdmin').classList.remove('hidden');
+        renderAdminPanel();
+      }
+    }
+
+    function copyUserId() {
+      if (!currentUser) return;
+      navigator.clipboard.writeText(currentUser.id);
+      alert(`✅ Sizning ID raqamingiz (${currentUser.id}) nusxalandi!`);
+    }
+
+    function openPaymentContactModal(planKey, planTitle) {
+      const uid = currentUser ? currentUser.id : 'QT-00000';
+      const msg = `Assalomu alaykum! Men Qulay-Taklifnoma platformasida «${planTitle}» tarifini faollashtirmoqchiman.\nMening Profil ID raqamim: ${uid}\nTo'lov uchun karta raqamingizni yuboring.`;
+
+      document.getElementById('payModalTitle').textContent = planTitle;
+      document.getElementById('payModalUserId').textContent = uid;
+      document.getElementById('payModalPreparedText').value = msg;
+      document.getElementById('payModalTelegramBtn').href = `https://t.me/${ADMIN_TELEGRAM_USERNAME}?text=${encodeURIComponent(msg)}`;
+
+      document.getElementById('paymentModal').classList.remove('hidden');
+      document.getElementById('paymentModal').classList.add('flex');
+    }
+
+    function closePaymentManager() {} // placeholder
+    function closePaymentModal() {
+      document.getElementById('paymentModal').classList.add('hidden');
+      document.getElementById('paymentModal'].classList.remove('flex');
+    }
+
+    function copyModalPreparedText() {
+      const txt = document.getElementById('payModalPreparedText').value;
+      navigator.clipboard.writeText(txt);
+      alert("✅ Tayyor xabar va ID raqamingiz nusxalandi!");
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      renderCategories();
+      generateCaptcha();
+
+      const params = new URLSearchParams(window.location.search);
+      const invitedState = decodeInviteFromParams(params);
+      if (invitedState) {
+        enterGuestModeWithState(invitedState, false);
+        return;
+      }
+
+      const savedSession = localStorage.getItem('qt_active_session_v2');
+      if (savedSession) {
+        currentUser = JSON.parse(savedSession);
+        syncUserSessionUI();
+      } else {
+        renderDesignsGrid();
+        updatePreview();
+        document.getElementById('authModal').classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
